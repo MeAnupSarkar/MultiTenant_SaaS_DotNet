@@ -19,17 +19,16 @@
         if (Context.Session.GetString("TenantId") is not null)
         {
             <li class="nav-item">
-                <a class="nav-link text-primary" asp-page="#" title="Manage"><b>Tenant ID: </b> @Context.Session.GetString("TenantId")</a>
+                <a class="nav-link text-primary" asp-controller="home" asp-action="Index" title="Manage"><b>Tenant ID: </b> @Context.Session.GetString("TenantId")</a>
             </li>
 
         }
-
 
         if (Context.Session.GetString("UserType") is not null)
         {
 
             <li class="nav-item">
-                <a class="nav-link text-dark" asp-page="#" title="Manage"><b>Subscription: </b> @Context.Session.GetString("UserType")</a>
+                <a class="nav-link text-dark" asp-controller="home" asp-action="Index" title="Manage"><b>Subscription: </b> @Context.Session.GetString("UserType")</a>
             </li>
         }
 

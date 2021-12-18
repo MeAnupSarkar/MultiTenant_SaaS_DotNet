@@ -28,9 +28,9 @@ namespace SaaS.WebApp.Model.Entity.Tables
             TenantId = tenantId;
         }
 
-        public string Name { get; private set; }
-        public string Description { get; private set; }
-        public int Rate { get; private set; }
+        public string Name { get;  set; }
+        public string Description { get;  set; }
+        public int Rate { get;  set; }
         public string TenantId { get; set; }
 
     }

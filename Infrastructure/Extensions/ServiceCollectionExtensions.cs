@@ -1,12 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using SaaS.WebApp.Data;
 using SaaS.WebApp.Model.Config;
+using System.Diagnostics;
 
 namespace SaaS.WebApp.Infrastructure.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddAndMigrateTenantDatabases(this IServiceCollection services, IConfiguration config)
+        public static  IServiceCollection  AddAndMigrateTenantDatabasesAsync(this IServiceCollection services, IConfiguration config)
         {
             var options = services.GetOptions<TenantSettings>(nameof(TenantSettings));
             var defaultConnectionString = options.Defaults?.ConnectionString;
@@ -14,7 +17,7 @@ namespace SaaS.WebApp.Infrastructure.Extensions
 
             if (defaultDbProvider.ToLower() == "mssql")
             {
-                services.AddDbContext<ApplicationDbContext>(m => m.UseSqlServer(e => e.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                services.AddDbContext<SharedCatalogDbContext>(m => m.UseSqlServer(e => e.MigrationsAssembly(typeof(SharedCatalogDbContext).Assembly.FullName)));
             }
 
 
@@ -31,15 +34,40 @@ namespace SaaS.WebApp.Infrastructure.Extensions
                     connectionString = tenant.ConnectionString;
                 }
                 using var scope = services.BuildServiceProvider().CreateScope();
-                var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var dbContext = scope.ServiceProvider.GetRequiredService<SharedCatalogDbContext>();
                 dbContext.Database.SetConnectionString(connectionString);
-                if (dbContext.Database.GetMigrations().Count() > 0)
-                {
-                    dbContext.Database.Migrate();
-                }
+
+
+                //// Migration Master Database
+                //if (string.IsNullOrEmpty(tenant.ConnectionString))
+                //{
+                    if (dbContext.Database.GetMigrations().Count() > 0)
+                    {
+                          dbContext.Database.Migrate();
+                    }
+                //}else
+                //{
+
+                //    if (dbContext.Database.GetMigrations().Count() > 0)
+                //    {
+                //        // dbContext.Database.MigrateAsync("Database_v4");
+
+                //        await dbContext.GetInfrastructure().GetService<IMigrator>().MigrateAsync("AddProduct");
+
+                //        var lastAppliedMigration = (await dbContext.Database.GetAppliedMigrationsAsync()).Last();
+
+                //        Debug.WriteLine($"You're on tenant schema migration version: {lastAppliedMigration}");
+                //    }
+
+
+                //}
+
+               
             }
             return services;
         }
+
+      
         public static T GetOptions<T>(this IServiceCollection services, string sectionName) where T : new()
         {
             using var serviceProvider = services.BuildServiceProvider();

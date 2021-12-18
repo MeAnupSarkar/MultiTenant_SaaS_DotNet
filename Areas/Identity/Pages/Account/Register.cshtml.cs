@@ -123,7 +123,10 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
 
                 user.UserType = Input.UserType;
-                user.TenantId = $"Tenant_{Input.Email.Split("@")[0]}_{Guid.NewGuid()}";
+
+                var uid = Input.Email.ToLower().Split("@")[0];
+
+                user.TenantId = uid.Length >=5 ? $"Tenant_{uid.Substring(0,5)}_{Model.Helper.Crypto.GetMD5Hash(Guid.NewGuid().ToString())}" : $"Tenant_{uid}_{Model.Helper.Crypto.GetMD5Hash(Guid.NewGuid().ToString())}";
 
                 var result = await _userManager.CreateAsync(user, Input.Password);
 

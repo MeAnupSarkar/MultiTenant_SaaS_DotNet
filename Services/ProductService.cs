@@ -7,8 +7,8 @@ namespace SaaS.WebApp.Services
 {
     public class ProductService : IProductService
     {
-        private readonly ApplicationDbContext _context;
-        public ProductService(ApplicationDbContext context)
+        private readonly SharedCatalogDbContext _context;
+        public ProductService(SharedCatalogDbContext context)
         {
             _context = context;
         }

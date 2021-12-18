@@ -25,16 +25,20 @@ builder.Services.AddSwaggerGen(c =>
 
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+
+builder.Services.AddDbContext<SharedCatalogDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("TenantSharedCatalogDbConnection")));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-
+ 
 
 builder.Services.AddRazorPages();
 
@@ -49,7 +53,7 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddTransient<ITenantService, TenantService>();
 builder.Services.AddTransient<IProductService, ProductService>();
 builder.Services.Configure<TenantSettings>(builder.Configuration.GetSection(nameof(TenantSettings)));
-builder.Services.AddAndMigrateTenantDatabases(builder.Configuration);
+builder.Services.AddAndMigrateTenantDatabasesAsync(builder.Configuration);
 
 
 builder.Services.AddDistributedMemoryCache();
