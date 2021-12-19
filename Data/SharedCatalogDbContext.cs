@@ -10,9 +10,8 @@ namespace SaaS.WebApp.Data
         public string TenantId { get; set; }
         private readonly ITenantService _tenantService;
 
-
-       
-
+ 
+   
 
         public SharedCatalogDbContext(DbContextOptions<SharedCatalogDbContext> options, ITenantService tenantService) : base(options)
         {
@@ -34,6 +33,7 @@ namespace SaaS.WebApp.Data
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             var tenantConnectionString = _tenantService.GetConnectionString();
+
 
 
             if (!string.IsNullOrEmpty(tenantConnectionString))
@@ -64,6 +64,6 @@ namespace SaaS.WebApp.Data
 
 
 
-      
+
     }
 }

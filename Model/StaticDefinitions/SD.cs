@@ -4,6 +4,7 @@
     {
          
         public static string MasterDbServer = ".\\SQLEXP2019";
+        public static string SharedTenantDb = "TenantSharedCatalogDb";
         public static string MasterDb = "MasterDb";
         public static string MasterDbUser = "";
         public static string MasterDbPass = "";

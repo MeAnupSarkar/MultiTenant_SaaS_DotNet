@@ -17,7 +17,12 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SaaS.WebApp.Data;
+using SaaS.WebApp.Infrastructure.Extensions;
+using SaaS.WebApp.Model.Config;
+using SaaS.WebApp.Model.StaticDefinitions;
 using SaaS.WebApp.Models;
 
 namespace SaaS.WebApp.Areas.Identity.Pages.Account
@@ -30,13 +35,18 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<ApplicationUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
+        private readonly ApplicationDbContext _context;
+        private readonly SharedCatalogDbContext _contextSharedDb;
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
             IUserStore<ApplicationUser> userStore,
             SignInManager<ApplicationUser> signInManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            ApplicationDbContext context,
+             SharedCatalogDbContext _contextSharedDb
+            )
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -44,6 +54,8 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
+            this._context = context;
+            this._contextSharedDb = _contextSharedDb;
         }
 
         /// <summary>
@@ -137,6 +149,45 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
                     var userId = await _userManager.GetUserIdAsync(user);
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+
+                    // Premium User
+                    if (user.UserType == "Paid")
+                    {
+                        Tenant tenant = new Tenant();
+                        tenant.Database = user.TenantId;
+                        tenant.Name = user.TenantId;
+                        tenant.TID = user.TenantId;
+                        tenant.DatabaseProvider = "mssql";
+                        tenant.ConnectionString = SD.createConnectionString(SD.MasterDbServer, tenant.Database);
+                        tenant.Status = true;
+
+                        await _context.Tenants.AddAsync(tenant);
+                        await _context.SaveChangesAsync();
+
+
+                        _contextSharedDb.Database.SetConnectionString(tenant.ConnectionString);
+
+                        if (_contextSharedDb.Database.GetMigrations().Count() > 0)
+                        {
+                            _contextSharedDb.Database.Migrate();
+                        }                      
+
+
+                    // Free Trial User
+                    }else
+                    {
+                        Tenant tenant = new Tenant();
+                        tenant.Database = SD.SharedTenantDb;
+                        tenant.Name = user.TenantId;
+                        tenant.TID = user.TenantId;
+                        tenant.DatabaseProvider = "mssql";
+                        tenant.ConnectionString = SD.createConnectionString(SD.MasterDbServer, SD.SharedTenantDb);
+                        tenant.Status = true;
+
+                        await _context.Tenants.AddAsync(tenant);
+                        await _context.SaveChangesAsync();
+                    }
+
                     var callbackUrl = Url.Page(
                         "/Account/ConfirmEmail",
                         pageHandler: null,

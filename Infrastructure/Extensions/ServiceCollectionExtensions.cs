@@ -9,7 +9,7 @@ namespace SaaS.WebApp.Infrastructure.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static  IServiceCollection  AddAndMigrateTenantDatabasesAsync(this IServiceCollection services, IConfiguration config)
+        public static  async Task<IServiceCollection>  AddAndMigrateTenantDatabasesAsync(this IServiceCollection services, IConfiguration config)
         {
             var options = services.GetOptions<TenantSettings>(nameof(TenantSettings));
             var defaultConnectionString = options.Defaults?.ConnectionString;
@@ -19,9 +19,12 @@ namespace SaaS.WebApp.Infrastructure.Extensions
             {
                 services.AddDbContext<SharedCatalogDbContext>(m => m.UseSqlServer(e => e.MigrationsAssembly(typeof(SharedCatalogDbContext).Assembly.FullName)));
             }
+         
+            var masterDbContext = services.BuildServiceProvider().CreateScope().ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+            //var tenants = options.Tenants;
+            var tenants = await  masterDbContext.Tenants.ToListAsync();
 
-            var tenants = options.Tenants;
             foreach (var tenant in tenants)
             {
                 string connectionString;
@@ -33,7 +36,10 @@ namespace SaaS.WebApp.Infrastructure.Extensions
                 {
                     connectionString = tenant.ConnectionString;
                 }
+
+
                 using var scope = services.BuildServiceProvider().CreateScope();
+
                 var dbContext = scope.ServiceProvider.GetRequiredService<SharedCatalogDbContext>();
                 dbContext.Database.SetConnectionString(connectionString);
 
@@ -41,10 +47,12 @@ namespace SaaS.WebApp.Infrastructure.Extensions
                 //// Migration Master Database
                 //if (string.IsNullOrEmpty(tenant.ConnectionString))
                 //{
-                    if (dbContext.Database.GetMigrations().Count() > 0)
-                    {
-                          dbContext.Database.Migrate();
-                    }
+
+                 
+                if (dbContext.Database.GetMigrations().Count() > 0)
+                {
+                        dbContext.Database.Migrate();
+                }
                 //}else
                 //{
 
@@ -65,6 +73,19 @@ namespace SaaS.WebApp.Infrastructure.Extensions
                
             }
             return services;
+        }
+
+
+        public static void MigrateAndGenerateDatabase(this IServiceCollection services,String connectionString)
+        {
+            using var scope = services.BuildServiceProvider().CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<SharedCatalogDbContext>();
+            dbContext.Database.SetConnectionString(connectionString);
+
+            if (dbContext.Database.GetMigrations().Count() > 0)
+            {
+                dbContext.Database.Migrate();
+            }
         }
 
       

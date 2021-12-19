@@ -33,5 +33,7 @@ namespace SaaS.WebApp.Model.Entity.Tables
         public int Rate { get;  set; }
         public string TenantId { get; set; }
 
+ 
+
     }
 }

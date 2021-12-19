@@ -7,6 +7,8 @@ namespace SaaS.WebApp.Data.Migrations2
 {
     public partial class Create_product_to_SharedCatalogDbContext : Migration
     {
+        
+
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(

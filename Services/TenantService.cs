@@ -4,6 +4,7 @@ using SaaS.WebApp.Infrastruture.Interfaces;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using SaaS.WebApp.Models;
+using SaaS.WebApp.Data;
 
 namespace SaaS.WebApp.Services
 {
@@ -12,13 +13,15 @@ namespace SaaS.WebApp.Services
         private readonly TenantSettings _tenantSettings;
         private HttpContext _httpContext;
         private Tenant _currentTenant;
+        private readonly ApplicationDbContext _context;
 
 
 
-        public TenantService(IOptions<TenantSettings> tenantSettings, IHttpContextAccessor contextAccessor)
+        public TenantService(IOptions<TenantSettings> tenantSettings, IHttpContextAccessor contextAccessor, ApplicationDbContext _context)
         {
             _tenantSettings = tenantSettings.Value;
             _httpContext = contextAccessor.HttpContext;
+            this._context = _context;
 
             //this._userManager = _userManager;
 
@@ -52,9 +55,10 @@ namespace SaaS.WebApp.Services
 
         private void SetTenant(string tenantId)
         {
-            _currentTenant = _tenantSettings.Tenants.Where(a => a.TID == tenantId).FirstOrDefault();
+            _currentTenant = _context.Tenants.Where(a => a.TID == tenantId).FirstOrDefault();
 
             if (_currentTenant == null) throw new Exception("Invalid Tenant!");
+
             if (string.IsNullOrEmpty(_currentTenant.ConnectionString))
             {
                 SetDefaultConnectionStringToCurrentTenant();

@@ -53,7 +53,7 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddTransient<ITenantService, TenantService>();
 builder.Services.AddTransient<IProductService, ProductService>();
 builder.Services.Configure<TenantSettings>(builder.Configuration.GetSection(nameof(TenantSettings)));
-builder.Services.AddAndMigrateTenantDatabasesAsync(builder.Configuration);
+await builder.Services.AddAndMigrateTenantDatabasesAsync(builder.Configuration);
 
 
 builder.Services.AddDistributedMemoryCache();
