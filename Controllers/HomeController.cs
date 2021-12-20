@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace SaaS.WebApp.Controllers
 {
-    [Authorize]
+    
     public class HomeController : Controller
     {
         public IActionResult Index()
