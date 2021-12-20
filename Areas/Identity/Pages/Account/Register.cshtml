@@ -40,8 +40,18 @@
             </div>
 
             <div class="form-floating">
-                <select asp-for="Input.UserType" asp-items="accountTypeSelectList" class="form-control"> </select>
-                <label>Select Subcription Model</label>           
+
+
+                  <select asp-for="Input.UserType" asp-items="accountTypeSelectList" class="form-control">
+                    
+                </select>
+
+                <label>Select Subcription Model</label>
+             
+
+              
+
+
                 <span asp-validation-for="Input.UserType" class="text-danger"></span>
             </div>
 

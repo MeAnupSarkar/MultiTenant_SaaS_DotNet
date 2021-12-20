@@ -7,7 +7,8 @@ using SaaS.WebApp.Infrastruture.Interfaces;
 using SaaS.WebApp.Model.Config;
 using SaaS.WebApp.Models;
 using SaaS.WebApp.Services;
- 
+using Microsoft.AspNetCore.Identity;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -25,12 +26,17 @@ builder.Services.AddSwaggerGen(c =>
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 
-builder.Services.AddDbContext<SharedCatalogDbContext>(options =>  options.UseSqlServer(builder.Configuration.GetConnectionString("TenantSharedCatalogDbConnection")));
+builder.Services.AddDbContext<SharedCatalogDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("TenantSharedCatalogDbConnection")));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddEntityFrameworkStores<ApplicationDbContext>();
 
  
 
@@ -43,13 +49,6 @@ builder.Services.AddControllersWithViews(options =>
 });
 
 
-//builder.Services.AddAuthentication(options =>
-//{
-//    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-//    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-//    options.DefaultAuthenticateScheme = OpenIdConnectDefaults.AuthenticationScheme;
-//})
-//.AddCookie();
 
 builder.Services.AddTransient<ITenantService, TenantService>();
 builder.Services.AddTransient<IProductService, ProductService>();
