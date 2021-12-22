@@ -30,6 +30,7 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
             _logger.LogInformation("User logged out.");
 
             HttpContext.Session.Remove("TenantId");
+            HttpContext.Session.Remove("UserType");
 
             if (returnUrl != null)
             {

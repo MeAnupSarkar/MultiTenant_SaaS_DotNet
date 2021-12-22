@@ -27,48 +27,20 @@ namespace SaaS.WebApp.Infrastructure.Extensions
 
             foreach (var tenant in tenants)
             {
-                string connectionString;
-                if (string.IsNullOrEmpty(tenant.ConnectionString))
-                {
-                    connectionString = defaultConnectionString;
-                }
-                else
-                {
-                    connectionString = tenant.ConnectionString;
-                }
-
+                string connectionString = string.IsNullOrEmpty(tenant.ConnectionString) ? defaultConnectionString : tenant.ConnectionString;
+          
 
                 using var scope = services.BuildServiceProvider().CreateScope();
 
                 var dbContext = scope.ServiceProvider.GetRequiredService<SharedCatalogDbContext>();
+
                 dbContext.Database.SetConnectionString(connectionString);
-
-
-                //// Migration Master Database
-                //if (string.IsNullOrEmpty(tenant.ConnectionString))
-                //{
-
-                 
+ 
                 if (dbContext.Database.GetMigrations().Count() > 0)
                 {
-                        dbContext.Database.Migrate();
+                      dbContext.Database.Migrate();
                 }
-                //}else
-                //{
-
-                //    if (dbContext.Database.GetMigrations().Count() > 0)
-                //    {
-                //        // dbContext.Database.MigrateAsync("Database_v4");
-
-                //        await dbContext.GetInfrastructure().GetService<IMigrator>().MigrateAsync("AddProduct");
-
-                //        var lastAppliedMigration = (await dbContext.Database.GetAppliedMigrationsAsync()).Last();
-
-                //        Debug.WriteLine($"You're on tenant schema migration version: {lastAppliedMigration}");
-                //    }
-
-
-                //}
+ 
 
                
             }

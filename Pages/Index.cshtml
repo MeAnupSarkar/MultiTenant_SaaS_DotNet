@@ -5,6 +5,32 @@
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <i class="bi bi-cloud-check" style="font-size: 250px;"></i>
+    <br/>
+    <h1 class="display-4">Multi-Tenant SaaS Web Application</h1>
+    <br/>
+
+    <ol class="list-group list-group-numbered" style="  text-align: left;   width: 63%;  margin: 0 auto;">
+      <li class="list-group-item d-flex justify-content-between align-items-start">
+        <div class="ms-2 me-auto">
+          <div class="fw-bold">Manage Products</div>
+            Products List,Create,Edit,Delete
+        </div>
+        <a class="badge bg-primary rounded-pill" asp-controller="ProductsCatalog" asp-action="Index">Go</a>
+      </li>
+      <li class="list-group-item d-flex justify-content-between align-items-start">
+        <div class="ms-2 me-auto">
+          <div class="fw-bold">Change Subscription Model</div>
+            Modify Subscription Model (free -> paid or paid -> free)
+        </div>
+        <a class="badge bg-primary rounded-pill" asp-area="Identity" asp-page="/Account/Manage/Index" >Go</a>
+      </li>
+      <li class="list-group-item d-flex justify-content-between align-items-start">
+        <div class="ms-2 me-auto">
+          <div class="fw-bold">Manage Account</div>
+             Changing Email,Password or deleting account with existing data.
+        </div>
+        <a class="badge bg-primary rounded-pill" asp-area="Identity" asp-page="/Account/Manage/Index" >Go</a>
+      </li>
+   </ol>
 </div>

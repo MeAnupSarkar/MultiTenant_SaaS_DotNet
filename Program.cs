@@ -16,10 +16,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Multitenant.Api", Version = "v1" });
-});
+//builder.Services.AddSwaggerGen(c =>
+//{
+//    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Multitenant.Api", Version = "v1" });
+//});
 
 
 
@@ -42,18 +42,33 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.R
 
 builder.Services.AddRazorPages();
 
-builder.Services.AddControllersWithViews(options =>
+ 
+
+var mvcBuilder = builder.Services.AddControllersWithViews(options =>
 {
+    // Slugify routes so that we can use /employee/employee-details/1 instead of
+    // the default /Employee/EmployeeDetails/1
+    //
+    // Using an outbound parameter transformer is a better choice as it also allows
+    // the creation of correct routes using view helpers
+    //options.Conventions.Add(
+    //   new RouteTokenTransformerConvention(
+    //       new SlugifyParameterTransformer()));
+
     // Enable Antiforgery feature by default on all controller actions
     // options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
 });
+
+#if DEBUG
+mvcBuilder.AddRazorRuntimeCompilation();
+#endif
 
 
 
 builder.Services.AddTransient<ITenantService, TenantService>();
 builder.Services.AddTransient<IProductService, ProductService>();
 builder.Services.Configure<TenantSettings>(builder.Configuration.GetSection(nameof(TenantSettings)));
-await builder.Services.AddAndMigrateTenantDatabasesAsync(builder.Configuration);
+//await builder.Services.AddAndMigrateTenantDatabasesAsync(builder.Configuration);
 
 
 builder.Services.AddDistributedMemoryCache();
@@ -71,19 +86,24 @@ builder.Services.AddSession(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-    app.UseMigrationsEndPoint();
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-else
-{
-    app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseDeveloperExceptionPage();
+//    app.UseMigrationsEndPoint();
+//    //app.UseSwagger();
+//    //app.UseSwaggerUI();
+//}
+//else
+//{
+//    app.UseExceptionHandler("/Error");
+//    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+//    app.UseHsts();
+//}
+
+
+
+app.UseDeveloperExceptionPage();
+app.UseMigrationsEndPoint();
 
 app.UseSession();
 

@@ -15,5 +15,6 @@
     <WebStackScaffolding_DbContextTypeFullName>SaaS.WebApp.Data.ApplicationDbContext</WebStackScaffolding_DbContextTypeFullName>
     <WebStackScaffolding_IsAsyncSelected>False</WebStackScaffolding_IsAsyncSelected>
     <WebStackScaffolding_IsViewGenerationSelected>True</WebStackScaffolding_IsViewGenerationSelected>
+    <NameOfLastUsedPublishProfile>C:\Users\meanu\Documents\Visual Studio 2019\Project\Core\SaaS.WebApp\Properties\PublishProfiles\SaaSWebApp - Zip Deploy.pubxml</NameOfLastUsedPublishProfile>
   </PropertyGroup>
 </Project>

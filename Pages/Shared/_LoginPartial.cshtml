@@ -9,7 +9,13 @@
 
 @{
     //var user = await UserManager.GetUserAsync(User);
+    bool sessionTimeout = false;
+    if (Context.Session.GetString("TenantId")  == null || Context.Session.GetString("UserType") == null)
+    {
+        sessionTimeout = true;
 
+        Url.Page("Identity/Account/Logout");
+    }
 
 }
 
@@ -19,7 +25,7 @@
         if (Context.Session.GetString("TenantId") is not null)
         {
             <li class="nav-item">
-                <a class="nav-link text-primary" asp-controller="home" asp-action="Index" title="Manage"><b>Tenant ID: </b> @Context.Session.GetString("TenantId")</a>
+                <a class="nav-link text-primary" asp-controller="home" asp-action="Index" title="Manage"><b><i class="bi bi-cpu-fill"></i> Tenant ID: </b> @Context.Session.GetString("TenantId")</a>
             </li>
 
         }
@@ -28,27 +34,53 @@
         {
 
             <li class="nav-item">
-                <a class="nav-link text-dark" asp-controller="home" asp-action="Index" title="Manage"><b>Subscription: </b> @Context.Session.GetString("UserType")</a>
+                <a class="nav-link text-dark" asp-controller="home" asp-action="Index" title="Manage"><b><i class="bi bi-cart-check-fill"></i> Subscription: </b> @Context.Session.GetString("UserType")</a>
             </li>
         }
 
 
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @User.Identity?.Name!</a>
+            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">
+                <b><i class="bi bi-envelope-fill"></i> @User.Identity?.Name</b></a>
         </li>
         <li class="nav-item">
             <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/", new { area = "" })" method="post">
-                <button type="submit" class="nav-link btn btn-link text-dark">Logout</button>
+                 
+                    @if(sessionTimeout)
+                    {
+                        <input type="hidden" id="isLoggedOut" value="1" />
+                    }else
+                    {
+                        <input type="hidden" id="isLoggedOut" value="0" />
+                    
+                    }
+
+                    <button type="submit" class="nav-link btn btn-link text-dark" id="logout"  ><i class="bi bi-box-arrow-right"></i> Logout</button>
+                
+                
             </form>
         </li>
     }
     else
     {
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Register</a>
+            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register"><i class="bi bi-person-plus-fill"></i> Register</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Login</a>
+            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login"><i class="bi bi-person-circle"></i> Login</a>
         </li>
     }
 </ul>
+
+
+@section Scripts
+{
+    <script>
+
+        @if(sessionTimeout)
+        {
+            @: $("#logout").click();
+        }
+       
+    </script>
+}
