@@ -24,6 +24,7 @@ using SaaS.WebApp.Infrastructure.Extensions;
 using SaaS.WebApp.Model.Config;
 using SaaS.WebApp.Model.StaticDefinitions;
 using SaaS.WebApp.Models;
+using SaaS.WebApp.Services;
 
 namespace SaaS.WebApp.Areas.Identity.Pages.Account
 {
@@ -37,6 +38,9 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
         private readonly IEmailSender _emailSender;
         private readonly ApplicationDbContext _context;
         private readonly SharedCatalogDbContext _contextSharedDb;
+        private readonly IConfiguration config;
+
+
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
@@ -45,7 +49,8 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
             ILogger<RegisterModel> logger,
             IEmailSender emailSender,
             ApplicationDbContext context,
-             SharedCatalogDbContext _contextSharedDb
+            SharedCatalogDbContext _contextSharedDb,
+            IConfiguration config
             )
         {
             _userManager = userManager;
@@ -56,6 +61,7 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
             _emailSender = emailSender;
             this._context = context;
             this._contextSharedDb = _contextSharedDb;
+            this.config = config;
         }
 
         /// <summary>
@@ -150,43 +156,12 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
 
-                    // Premium User
-                    if (user.UserType == "Paid")
-                    {
-                        Tenant tenant = new Tenant();
-                        tenant.Database = user.TenantId;
-                        tenant.Name = user.TenantId;
-                        tenant.TID = user.TenantId;
-                        tenant.DatabaseProvider = "mssql";
-                        tenant.ConnectionString = SD.createConnectionString(SD.MasterDbServer, tenant.Database);
-                        tenant.Status = true;
+                    // var  userTenantShardingDbService = new ManualScalingOutDbService(_context,_contextSharedDb);
 
-                        await _context.Tenants.AddAsync(tenant);
-                        await _context.SaveChangesAsync();
-
-
-                        _contextSharedDb.Database.SetConnectionString(tenant.ConnectionString);
-
-                        if (_contextSharedDb.Database.GetMigrations().Count() > 0)
-                        {
-                            _contextSharedDb.Database.Migrate();
-                        }                      
-
-
-                    // Free Trial User
-                    }else
-                    {
-                        Tenant tenant = new Tenant();
-                        tenant.Database = SD.SharedTenantDb;
-                        tenant.Name = user.TenantId;
-                        tenant.TID = user.TenantId;
-                        tenant.DatabaseProvider = "mssql";
-                        tenant.ConnectionString = SD.createConnectionString(SD.MasterDbServer, SD.SharedTenantDb);
-                        tenant.Status = true;
-
-                        await _context.Tenants.AddAsync(tenant);
-                        await _context.SaveChangesAsync();
-                    }
+                    var  userTenantShardingDbService = new AzureElasticScaleScalingOutDbService(_context,_contextSharedDb,config);
+                    
+                    await userTenantShardingDbService.CreateUserDedicatedOrSharedTenantDb(user, code);
+                   
 
                     var callbackUrl = Url.Page(
                         "/Account/ConfirmEmail",

@@ -16,6 +16,8 @@ namespace SaaS.WebApp.Model.Config
 
         public bool Status { get; set; }
 
+        public int TenantSl { get; set; }
+
 
 
     }

@@ -31,7 +31,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 
 builder.Services.AddDbContext<SharedCatalogDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("TenantSharedCatalogDbConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("TenantSharedCatalogDbConnection"),
+    options => options.EnableRetryOnFailure()));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 

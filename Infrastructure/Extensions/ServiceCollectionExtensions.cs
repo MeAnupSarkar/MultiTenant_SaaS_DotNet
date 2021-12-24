@@ -11,6 +11,10 @@ namespace SaaS.WebApp.Infrastructure.Extensions
     {
         public static  async Task<IServiceCollection>  AddAndMigrateTenantDatabasesAsync(this IServiceCollection services, IConfiguration config)
         {
+
+            //var data = config["TenantSettings:Defaults:DBProvider"];
+            //var data2 = config["TenantSettings:Defaults:DB_Server"];
+
             var options = services.GetOptions<TenantSettings>(nameof(TenantSettings));
             var defaultConnectionString = options.Defaults?.ConnectionString;
             var defaultDbProvider = options.Defaults?.DBProvider;

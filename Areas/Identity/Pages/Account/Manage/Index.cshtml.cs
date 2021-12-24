@@ -15,6 +15,7 @@ using SaaS.WebApp.Data;
 using SaaS.WebApp.Model.Entity.Tables;
 using SaaS.WebApp.Model.StaticDefinitions;
 using SaaS.WebApp.Models;
+using SaaS.WebApp.Services;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SaaS.WebApp.Areas.Identity.Pages.Account.Manage
@@ -25,17 +26,22 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account.Manage
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ApplicationDbContext _context;
         private readonly SharedCatalogDbContext _currentContext;
+        private readonly IConfiguration config;
 
         public IndexModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
              ApplicationDbContext _context,
-             SharedCatalogDbContext _contextSharedDb)
+             SharedCatalogDbContext _contextSharedDb,
+             IConfiguration config
+            
+            )
         {
             _userManager = userManager;
             _signInManager = signInManager;
             this._context = _context;
             this._currentContext = _contextSharedDb;
+            this.config = config;
 
         }
 
@@ -120,140 +126,20 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account.Manage
 
 
 
-            //Fetching Existing Data
-            List<Product> existingData = null;
+            
+           
 
             if (user.UserType != Input.UserType)
             {
                 user.UserType = Input.UserType;
 
-                switch (Input.UserType)
-                {
-                    // From Paid to Free
-                    case "Free":
+               
 
-                        try
-                        {
-                            var t = _context.Tenants.Where(s => s.TID == user.TenantId).SingleOrDefault();
+                //var userTenantShardingDbService = new ManualScalingOutDbService(_context, _currentContext);
+                var userTenantShardingDbService = new AzureElasticScaleScalingOutDbService(_context, _currentContext, config);
+                await userTenantShardingDbService.ChangeUserDedicatedOrSharedTenantDb(user);
 
-                            if (t is not null)
-                            {
-                                _currentContext.Database.SetConnectionString(t.ConnectionString);
-
-                                //Fetching Existing Data
-                                existingData = _currentContext.Products.Where(s => s.TenantId == user.TenantId).ToList();
-
-                                //Removing Existing Tenant Data
-                                _currentContext.RemoveRange(existingData);
-                                _currentContext.SaveChanges();
-
-                                t.Database = SD.SharedTenantDb;
-                                t.ConnectionString = SD.createConnectionString(SD.MasterDbServer, SD.SharedTenantDb);
-                                _context.Update(t);
-                                _context.SaveChanges();
-
-
-                                _currentContext.ChangeTracker.Entries().ToList().ForEach(e => e.State = EntityState.Detached);
-
-                                _currentContext.Database.EnsureDeleted(); // Opens and disposes its own connection
-
-                                _currentContext.SaveChanges();
-
-                                _currentContext.Database.SetConnectionString(t.ConnectionString);
-
-                                if (existingData.Count > 0)
-                                {
-
-                                    existingData.ForEach(x =>
-                                    {
-                                        x.Id = 0;
-                                    });
-
-                                    // Move Data
-                                    _currentContext.AddRange(existingData);
-                                    _currentContext.SaveChanges();
-                                }
-
-                                await _userManager.UpdateAsync(user);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine("****************************");
-                            Debug.WriteLine(ex.Message);
-                            Debug.WriteLine("****************************");
-
-                        }
-
-                        break;
-
-                    // From Free to Paid
-                    case "Paid":
-
-                        try
-                        {
-                            var tenant = _context.Tenants.Where(s => s.TID == user.TenantId).SingleOrDefault();
-
-                            if (tenant is not null)
-                            {
-                                var str = tenant.ConnectionString;
-
-                                tenant.Database = user.TenantId;
-                                tenant.ConnectionString = SD.createConnectionString(SD.MasterDbServer, tenant.Database);
-                                _context.Update(tenant);
-                                _context.SaveChanges();
-
-
-                                _currentContext.Database.SetConnectionString(str);
-
-                                if (_currentContext.Products.Any(s => s.TenantId == user.TenantId))
-                                {
-                                    existingData = _currentContext.Products.Where(s => s.TenantId == user.TenantId).ToList();
-
-                                    //Removing Existing Tenant Data
-                                    _currentContext.RemoveRange(existingData);
-                                    _currentContext.SaveChanges();
-
-                                }
-
-                                _currentContext.Database.SetConnectionString(tenant.ConnectionString);
-
-                                if (_currentContext.Database.GetMigrations().Count() > 0)
-                                {
-                                    _currentContext.Database.Migrate();
-
-                                    if (existingData.Count > 0)
-                                    {
-                                        existingData.ForEach(x =>
-                                        {
-                                            x.Id = 0;
-                                        });
-
-
-                                        // Move Data
-                                        _currentContext.AddRange(existingData);
-                                        _currentContext.SaveChanges();
-                                    }
-
-
-                                }
-
-                                await _userManager.UpdateAsync(user);
-                            }
-
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine("****************************");
-                            Debug.WriteLine(ex.Message);
-                            Debug.WriteLine("****************************");
-                        }
-
-
-
-                        break;
-                }
-
+                await _userManager.UpdateAsync(user);
 
                 HttpContext.Session.SetString("UserType", user.UserType);
             }

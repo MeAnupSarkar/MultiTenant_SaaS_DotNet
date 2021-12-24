@@ -33,20 +33,28 @@ namespace SaaS.WebApp.Services
                 }
                 else
                 {
-                    //if()
-                    // throw new Exception("Invalid Tenant!");
-                    var tid = _httpContext.Session.GetString("TenantId");
-                    if (tid is not null)
+                    try
                     {
-                        // Debug.WriteLine("Authenticated User");
+                        //if()
+                        // throw new Exception("Invalid Tenant!");
+                        var tid = _httpContext.Session.GetString("TenantId");
+                        if (tid is not null)
+                        {
+                            // Debug.WriteLine("Authenticated User");
 
-                        SetTenant(tid);
+                            SetTenant(tid);
 
-                    }
-                    else
+                        }
+                        else
+                        {
+                            Debug.WriteLine("TenantId Not Found!");
+                        }
+
+                    }catch (Exception ex)
                     {
-                        Debug.WriteLine("TenantId Not Found!");
+                        Debug.WriteLine(ex.Message);
                     }
+
 
                 }
             }
