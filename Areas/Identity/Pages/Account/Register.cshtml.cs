@@ -144,6 +144,7 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
 
                 var uid = Input.Email.ToLower().Split("@")[0];
 
+                user.EmailConfirmed = true;
                 user.TenantId = uid.Length >=5 ? $"Tenant_{uid.Substring(0,5)}_{Model.Helper.Crypto.GetMD5Hash(Guid.NewGuid().ToString())}" : $"Tenant_{uid}_{Model.Helper.Crypto.GetMD5Hash(Guid.NewGuid().ToString())}";
 
                 var result = await _userManager.CreateAsync(user, Input.Password);
@@ -152,25 +153,31 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account
                 {
                     _logger.LogInformation("User created a new account with password.");
 
-                    var userId = await _userManager.GetUserIdAsync(user);
-                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+                   
+                    //var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    //code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
 
                     // var  userTenantShardingDbService = new ManualScalingOutDbService(_context,_contextSharedDb);
 
                     var  userTenantShardingDbService = new AzureElasticScaleScalingOutDbService(_context,_contextSharedDb,config);
                     
-                    await userTenantShardingDbService.CreateUserDedicatedOrSharedTenantDb(user, code);
-                   
+                    await userTenantShardingDbService.CreateUserDedicatedOrSharedTenantDb(user);
 
-                    var callbackUrl = Url.Page(
-                        "/Account/ConfirmEmail",
-                        pageHandler: null,
-                        values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
-                        protocol: Request.Scheme);
 
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    _userManager.Options.SignIn.RequireConfirmedAccount = false;
+
+                    HttpContext.Session.SetString("TenantId", user.TenantId);
+                    HttpContext.Session.SetString("UserType", user.UserType);
+
+
+                    //var callbackUrl = Url.Page(
+                    //    "/Account/ConfirmEmail",
+                    //    pageHandler: null,
+                    //    values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
+                    //    protocol: Request.Scheme);
+
+                    //await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
+                    //    $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {

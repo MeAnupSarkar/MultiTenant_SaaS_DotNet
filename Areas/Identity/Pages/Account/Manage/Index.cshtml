@@ -1,7 +1,7 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Profile";
+    ViewData["Title"] = "Account";
     ViewData["ActivePage"] = ManageNavPages.Index;
 
 
@@ -24,7 +24,7 @@
                 <input asp-for="Username" class="form-control" disabled />
                 <label asp-for="Username" class="form-label"></label>
             </div>
-            <div class="form-floating">
+            <div class="form-floating" style="display:none">
                 <input asp-for="Input.PhoneNumber" class="form-control" />
                 <label asp-for="Input.PhoneNumber" class="form-label"></label>
                 <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
@@ -38,7 +38,7 @@
 
 
 
-            <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary mt-3">Save</button>
+            <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-warning mt-3">Change Subscription</button>
         </form>
     </div>
 </div>

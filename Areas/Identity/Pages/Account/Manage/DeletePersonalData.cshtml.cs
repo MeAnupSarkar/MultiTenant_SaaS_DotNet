@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SaaS.WebApp.Data;
 using SaaS.WebApp.Models;
+using SaaS.WebApp.Services;
 
 namespace SaaS.WebApp.Areas.Identity.Pages.Account.Manage
 {
@@ -22,20 +23,22 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account.Manage
         private readonly ILogger<DeletePersonalDataModel> _logger;
         private readonly SharedCatalogDbContext _currentContext;
         private readonly ApplicationDbContext _context;
-
+        private readonly IConfiguration config;
 
         public DeletePersonalDataModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             ILogger<DeletePersonalDataModel> logger,
              SharedCatalogDbContext contextSharedDb,
-             ApplicationDbContext context)
+             ApplicationDbContext context, 
+             IConfiguration config)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = logger;
             _currentContext = contextSharedDb;
             _context = context;
+            this.config = config;
         }
 
         /// <summary>
@@ -105,39 +108,11 @@ namespace SaaS.WebApp.Areas.Identity.Pages.Account.Manage
 
 
 
-            switch (user.UserType)
-            {
-                case "Free":
-                     
-                        //Removing Existing Tenant Data from Shared Database
-                        _currentContext.RemoveRange(_currentContext.Products.Where(s => s.TenantId == user.TenantId));
-                        _currentContext.SaveChanges();
-                 
-                    break;
+            var userTenantShardingDbService = new AzureElasticScaleScalingOutDbService(_context, _currentContext, config);
 
-                case "Paid":
-                    var t = _context.Tenants.Where(s => s.TID == user.TenantId).SingleOrDefault();
+            await userTenantShardingDbService.DeleteTenantShardAndShardMappings(user);
 
-                    if (t is not null)
-                    {
-                        //Removing Existing Dedicated Database
-                        _currentContext.Database.SetConnectionString(t.ConnectionString);
-
-                        _currentContext.ChangeTracker.Entries().ToList().ForEach(e => e.State = EntityState.Detached);
-
-                        _currentContext.Database.EnsureDeleted(); // Opens and disposes its own connection
-
-                        _currentContext.SaveChanges();
-
-
-                    }
-                    break;
- 
-            }
-
-            _context.Tenants.Remove(_context.Tenants.Where(s => s.TID == user.TenantId).SingleOrDefault());
-            _context.SaveChanges();
-
+          
             await _signInManager.SignOutAsync();
 
 

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Azure.SqlDatabase.ElasticScale.ShardManagement;
 using Microsoft.Azure.SqlDatabase.ElasticScale.ShardManagement.Schema;
@@ -55,9 +56,7 @@ namespace Data.Azure.Service
             }
         }
 
-        // Enter a new shard - i.e. an empty database - to the shard map, allocate a first tenant to it 
-        // and kick off EF intialization of the database to deploy schema
-        // public void RegisterNewShard(string server, string database, string user, string pwd, string appname, int key)
+     
         public void RegisterNewShard(string server, string database, string connstr, int key)
         {
             Shard shard;
@@ -72,22 +71,51 @@ namespace Data.Azure.Service
             connStrBldr.DataSource = server;
             connStrBldr.InitialCatalog = database;
 
-            // Go into a DbContext to trigger migrations and schema deployment for the new shard.
-            // This requires an un-opened connection.
-            //using (var db = new ElasticScaleContext<int>(connStrBldr.ConnectionString))
-            //{
-            //    // Run a query to engage EF migrations
-            //    (from b in db.Blogs
-            //     select b).Count();
-            //}
-
-            // Register the mapping of the tenant to the shard in the shard map.
-            // After this step, DDR on the shard map can be used
             PointMapping<int> mapping;
             if (!this.ShardMap.TryGetMappingForKey(key, out mapping))
             {
                 this.ShardMap.CreatePointMapping(key, shard);
             }
+        }
+
+
+        public void DeleteShard(string server, string database, string connstr, int key)
+        {
+            Shard shard;
+            ShardLocation shardLocation = new ShardLocation(server, database);
+
+            if (!this.ShardMap.TryGetShard(shardLocation, out shard))
+            {
+                shard = this.ShardMap.CreateShard(shardLocation);
+
+                if(shard != null)
+                {
+                    try
+                    {
+                        //Delete Shard
+                        this.ShardMap.DeleteShard(shard);
+                        
+
+                        PointMapping<int> mapping;
+                        if (!this.ShardMap.TryGetMappingForKey(key, out mapping))
+                        {
+                            //Delete Shard Mapping
+                            this.ShardMap.DeleteMapping(mapping);
+                        }
+
+                    }
+                    catch(Exception ex)
+                    {
+                        Debug.WriteLine(ex.Message);
+                    }
+                }
+                   
+            }
+
+            SqlConnectionStringBuilder connStrBldr = new SqlConnectionStringBuilder(connstr);
+            connStrBldr.DataSource = server;
+            connStrBldr.InitialCatalog = database;
+ 
         }
     }
 }

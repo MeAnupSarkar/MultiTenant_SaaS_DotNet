@@ -28,16 +28,14 @@ namespace SaaS.WebApp.Services
             _currentContext = contextSharedDb;
             this.config = config;
 
-
             masterDbServer = config["TenantSettings:Defaults:DB_Server"];
             tenantSharedCatalogDb = config["TenantSettings:Defaults:TenantSharedCatalogDb"];
             userName = config["TenantSettings:Defaults:userName"];
             password = config["TenantSettings:Defaults:password"];
-
-            
+          
         }
 
-        internal   async  Task  CreateUserDedicatedOrSharedTenantDb(ApplicationUser user, string code)
+        internal   async  Task  CreateUserDedicatedOrSharedTenantDb(ApplicationUser user)
         {
             // Premium User
             if (user.UserType == "Paid")
@@ -59,15 +57,7 @@ namespace SaaS.WebApp.Services
                 var shardDb = user.TenantId;
 
                 await azureShardingManager.AddShardWithNewDatabase(tenant.TenantSl, shardDb, tenant.ConnectionString);
-
-                //_currentContext.Database.SetConnectionString(tenant.ConnectionString);
-
-                //if (_currentContext.Database.GetMigrations().Count() > 0)
-                //{
-                //    _currentContext.Database.Migrate();
-                //}
-
-
+             
                 // Free Trial User
             }
             else
@@ -83,7 +73,6 @@ namespace SaaS.WebApp.Services
 
                 await _context.Tenants.AddAsync(tenant);
                 await _context.SaveChangesAsync();
-
 
                 var azureShardingManager = new ShardingManagementService(config, _currentContext);
 
@@ -123,29 +112,31 @@ namespace SaaS.WebApp.Services
                             _context.Update(t);
                             _context.SaveChanges();
 
+                            //----------------------Deleting Existing Database ------------------------
+                            _currentContext.ChangeTracker.Entries().ToList().ForEach(e => e.State = EntityState.Detached);
 
-                            //_currentContext.ChangeTracker.Entries().ToList().ForEach(e => e.State = EntityState.Detached);
+                            _currentContext.Database.EnsureDeleted();
 
-                            //_currentContext.Database.EnsureDeleted();  
+                            _currentContext.SaveChanges();
 
-                            //_currentContext.SaveChanges();
 
-                            //_currentContext.Database.SetConnectionString(t.ConnectionString);
+                            //---------------------- Moving Existing Data to shared database ------------------------
+                            _currentContext.Database.SetConnectionString(t.ConnectionString);
 
-                            //if (existingData.Count > 0)
-                            //{
+                            if (existingData.Count > 0)
+                            {
 
-                            //    existingData.ForEach(x =>
-                            //    {
-                            //        x.Id = 0;
-                            //    });
+                                existingData.ForEach(x =>
+                                {
+                                    x.Id = 0;
+                                });
 
-                            //    // Move Data
-                            //    _currentContext.AddRange(existingData);
-                            //    _currentContext.SaveChanges();
-                            //}
+                                // Move Data
+                                _currentContext.AddRange(existingData);
+                                _currentContext.SaveChanges();
+                            }
 
-                            
+
                         }
                     }
                     catch (Exception ex)
@@ -192,33 +183,29 @@ namespace SaaS.WebApp.Services
 
                             var shardDb = user.TenantId;
 
-                           await azureShardingManager.AddShardWithNewDatabase(tenant.TenantSl, shardDb, tenant.ConnectionString);
+                            //---------------------- Create new Dedicated Shard database ------------------------
 
+                            await azureShardingManager.AddShardWithNewDatabase(tenant.TenantSl, shardDb, tenant.ConnectionString);
+                            _currentContext.Database.SetConnectionString(tenant.ConnectionString);
 
+                            if (_currentContext.Database.GetMigrations().Count() > 0)
+                            {
+                                _currentContext.Database.Migrate();
 
-                           // _currentContext.Database.SetConnectionString(tenant.ConnectionString);
+                                //------------------ Transferring Existing Data to new dedicated database ------------------------
 
-                            //if (_currentContext.Database.GetMigrations().Count() > 0)
-                            //{
-                            //    _currentContext.Database.Migrate();
+                                if (existingData.Count > 0)
+                                {
+                                    existingData.ForEach(x =>
+                                    {
+                                        x.Id = 0;
+                                    });
 
-                            //    if (existingData.Count > 0)
-                            //    {
-                            //        existingData.ForEach(x =>
-                            //        {
-                            //            x.Id = 0;
-                            //        });
-
-
-                            //        // Move Data
-                            //        _currentContext.AddRange(existingData);
-                            //        _currentContext.SaveChanges();
-                            //    }
-
-
-                            //}
-
-                            
+                                    // Move Data
+                                    _currentContext.AddRange(existingData);
+                                    _currentContext.SaveChanges();
+                                }
+                            }
                         }
 
                     }
@@ -228,11 +215,51 @@ namespace SaaS.WebApp.Services
                         Debug.WriteLine(ex.Message);
                         Debug.WriteLine("****************************");
                     }
-
-
-
                     break;
             }
+
+        }
+
+        internal async Task DeleteTenantShardAndShardMappings(ApplicationUser user)
+        {
+            var tenant = _context.Tenants.Where(s => s.TID == user.TenantId).SingleOrDefault();
+
+            switch (user.UserType)
+            {
+                case "Free":
+            
+                    if(tenant is not null)
+                    {
+                        //Removing Existing Tenant Data from Shared Database
+                        _currentContext.RemoveRange(tenant);
+                        _currentContext.SaveChanges();                    
+                    }
+                    break;
+
+                case "Paid":
+                     
+                    if (tenant is not null)
+                    {
+                        //Removing Existing Dedicated Database
+                        _currentContext.Database.SetConnectionString(tenant.ConnectionString);
+
+                        _currentContext.ChangeTracker.Entries().ToList().ForEach(e => e.State = EntityState.Detached);
+
+                        _currentContext.Database.EnsureDeleted(); // Opens and disposes its own connection
+
+                        _currentContext.SaveChanges();
+
+                    }
+                    break;
+
+            }
+
+            //Deleteing Shards With Mapping
+            var azureShardingManager = new ShardingManagementService(config, _currentContext);
+            await azureShardingManager.DeleteShardsWithMapping(tenant.TenantSl, user.TenantId, tenant.ConnectionString);
+
+            _context.Tenants.Remove(tenant);
+            _context.SaveChanges();
 
         }
     }
